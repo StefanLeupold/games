@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8" />
+  <body>
+    <div><canvas height="600px" width="600px" id="canv"></canvas></div>
+  </body>
+
+  <style>
+    div {
+      width: 100%;
+      height: 80vh;
+      position: relative;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      margin: auto;
+    }
+  </style>
+
+  <script type="text/javascript">
+    const canvasSize = 600;
+    const tileSize = 30;
+    const margin = 1;
+    const tiles = canvasSize / tileSize;
+
+    var player = { x: Math.floor(tiles / 2), y: Math.floor(tiles / 3) };
+    var moveDir = { x: 1, y: 0 };
+    var tail = 5;
+    var playerTrail = [];
+    for (let i = tail - 1; i >= 0; i--) {
+      playerTrail.push({ x: player.x - i, y: player.y });
+    }
+    var food = {};
+    var moveDirChangeable = true;
+
+    var ctx;
+
+    window.onload = () => {
+      var canvas = document.getElementById("canv");
+      ctx = canvas.getContext("2d");
+
+      document.addEventListener("keydown", keydown);
+      setInterval(run, 1000 / 15);
+    };
+
+    function dropFood() {
+      food.x = Math.floor(Math.random() * tiles);
+      food.y = Math.floor(Math.random() * tiles);
+    }
+
+    function run() {
+      player.x = (player.x + moveDir.x + tiles) % tiles;
+      player.y = (player.y + moveDir.y + tiles) % tiles;
+
+      // check for collision
+      if (playerTrail.some(e => e.x === player.x && e.y === player.y)) {
+        // reset game
+        tail = 5;
+        food = {};
+      }
+
+      playerTrail.push({ x: player.x, y: player.y });
+
+      if (food.x) {
+        if (food.x === player.x && food.y === player.y) {
+          tail++;
+          food = {};
+        }
+      }
+
+      if (!food.x) {
+        dropFood();
+        while (playerTrail.some(e => e.x === food.x && e.y === food.y)) dropFood();
+      }
+
+      while (playerTrail.length > tail) {
+        playerTrail.shift(); // remove old positions
+      }
+
+      draw();
+      moveDirChangeable = true;
+    }
+
+    function draw() {
+      // grid color -> fill all with this color first
+      ctx.fillStyle = "AliceBlue";
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+      // draw tiles
+      ctx.fillStyle = "black";
+      for (var m = 0; m < tiles; m++) {
+        for (var k = 0; k < tiles; k++) {
+          ctx.fillRect(m * tileSize + margin, k * tileSize + margin, tileSize - 2 * margin, tileSize - 2 * margin);
+        }
+      }
+
+      // draw player
+      ctx.fillStyle = "#4a98ff";
+      for (p of playerTrail) {
+        ctx.fillRect(p.x * tileSize, p.y * tileSize, tileSize, tileSize);
+      }
+
+      // draw food
+      ctx.fillStyle = "LightGreen";
+      ctx.fillRect(
+        food.x * tileSize + 6 * margin,
+        food.y * tileSize + 6 * margin,
+        tileSize - 2 * 6 * margin,
+        tileSize - 2 * 6 * margin
+      );
+    }
+
+    function keydown(event) {
+      // arrow keys: 37-40
+      switch (event.keyCode) {
+        case 37:
+          if (moveDir.x !== 1 && moveDirChangeable) {
+            moveDir.x = -1;
+            moveDir.y = 0;
+            moveDirChangeable = false;
+          }
+          break;
+        case 38:
+          if (moveDir.y !== 1 && moveDirChangeable) {
+            moveDir.x = 0;
+            moveDir.y = -1;
+            moveDirChangeable = false;
+          }
+          break;
+        case 39:
+          if (moveDir.x !== -1 && moveDirChangeable) {
+            moveDir.x = 1;
+            moveDir.y = 0;
+            moveDirChangeable = false;
+          }
+          break;
+        case 40:
+          if (moveDir.y !== -1 && moveDirChangeable) {
+            moveDir.x = 0;
+            moveDir.y = 1;
+            moveDirChangeable = false;
+          }
+          break;
+      }
+    }
+  </script>
+</html>
